@@ -1,15 +1,26 @@
-import express, { Request, Response } from "express";
-import path from "path";
+import dotenv from "dotenv";
+import express from "express";
+import { query } from "./config/database";
+
+// Charger les variables d'environnement
+dotenv.config();
+console.log("DB_USER:", process.env.DB_USER); //Pour voir si les variable env sont bien chargées
 
 const app = express();
+app.use(express.json());
 
-// Configurer le moteur de rendu
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
-// Exemple d'itinéraire avec res.render()
-app.get("/", (req: Request, res: Response) => {
-  res.render("index", { message: "Hello World!" });
+// Exemple de route pour tester la base de données
+app.get("/test-db", async (req, res) => {
+  try {
+    const result = await query("SELECT NOW()"); // Teste la connexion avec la commande SQL
+    res.json({ message: "Connexion réussie !", time: result.rows[0] });
+  } catch (error) {
+    console.error("Erreur de connexion :", error);
+    res.status(500).json({ error: "Erreur de connexion à la base de données" });
+  }
 });
 
-app.listen(3000, () => console.log("Serveur démarré sur le port 3000"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
+});
