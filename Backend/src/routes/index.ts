@@ -7,4 +7,8 @@ router.get("/", function (req: Request, res: Response, next: any) {
   res.render("index", { title: "Express" });
 });
 
+/* GET users listing. */
+router.get("/", function (req: Request, res: Response, next: any) {
+  res.send("respond with a resource");
+});
 module.exports = router;
