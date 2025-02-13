@@ -1,5 +1,5 @@
 import request from "supertest";
-import app from "../../app"; // Ton fichier principal Express (où app est créé)
+import app from "../app"; // Ton fichier principal Express (où app est créé)
 import { query } from "../config/database";
 
 // Mock de la base de données

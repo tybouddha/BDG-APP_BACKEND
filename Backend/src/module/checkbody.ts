@@ -1,4 +1,4 @@
-const checkBody = (object) => {
+const checkBody = (object: any) => {
   for (const element in object) {
     if (object[element] || object[element] != "") {
       return true;
