@@ -10,7 +10,11 @@ dotenv.config();
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Route POST /signup
+//*********************//
+//     ROUTE POST     //
+//*******************//
+
+//Route Signup
 router.post(
   "/signup",
   [
@@ -80,6 +84,70 @@ router.post(
       });
     } catch (error) {
       console.error("Erreur lors de la création d'un utilisateur :", error);
+      res.status(500).json({
+        result: false,
+        message: "Erreur interne du serveur.",
+      });
+    }
+  }
+);
+
+//Route Signin
+router.post(
+  "/signin",
+  [
+    body("username")
+      .notEmpty()
+      .withMessage("Le nom d'utilisateur est obligatoire."),
+    body("password_hash")
+      .isLength({ min: 6 })
+      .withMessage("Le mot de passe doit contenir au moins 6 caractères."),
+  ],
+  async (req: Request, res: Response): Promise<void> => {
+    console.log("Requête reçue sur /auth/signin");
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          result: false,
+          errors: errors.array(),
+        });
+      }
+
+      const { username, password_hash } = req.body;
+
+      const userResult = await query(
+        "SELECT * FROM users WHERE username = $1",
+        [username]
+      );
+      const userExists = userResult.rows;
+      if (userExists.length === 0) {
+        res.status(404).json({ error: "Utilisateur non trouvé." });
+      }
+
+      const passwordMatch = await bcrypt.compare(
+        password_hash,
+        userExists[0].password_hash
+      );
+      if (!passwordMatch) {
+        res.status(401).json({ error: "Mot de passe incorrect." });
+      }
+
+      if (!JWT_SECRET) {
+        throw new Error(
+          "JWT_SECRET doit être obligatoirement défini dans les variables d'environnement"
+        );
+      }
+
+      const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
+
+      res.status(200).json({
+        result: true,
+        message: "Utilisateur connecté.",
+        token: token,
+      });
+    } catch (error) {
+      console.error("Erreur lors de la connexion de l'utilisateur :", error);
       res.status(500).json({
         result: false,
         message: "Erreur interne du serveur.",
