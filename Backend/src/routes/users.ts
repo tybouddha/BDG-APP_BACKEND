@@ -19,11 +19,12 @@ router.post(
       .notEmpty()
       .withMessage("Le nom d'utilisateur est obligatoire."),
     body("email").isEmail().withMessage("Format d'email invalide."),
-    body("password")
+    body("password_hash")
       .isLength({ min: 6 })
       .withMessage("Le mot de passe doit contenir au moins 6 caractères."),
   ],
   async (req: Request, res: Response): Promise<void> => {
+    console.log("Requête reçue sur /auth/signup");
     try {
       // Vérification des erreurs de validation
       const errors = validationResult(req);
@@ -35,7 +36,7 @@ router.post(
       }
 
       // Extraction des données
-      const { username, email, password } = req.body;
+      const { username, email, password_hash } = req.body;
 
       // Vérifier si l'utilisateur existe déjà
       const userExists = await query("SELECT * FROM users WHERE email = $1", [
@@ -49,7 +50,7 @@ router.post(
       }
 
       // Hash du mot de passe
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password_hash, 10);
       if (!JWT_SECRET) {
         throw new Error(
           "JWT_SECRET doît être obligatoirement défini dans les variables d'environnement"
@@ -60,7 +61,7 @@ router.post(
 
       // Insertion de l'utilisateur dans la base
       const result = await query(
-        `INSERT INTO users (username, email, password, token, token_expiration) 
+        `INSERT INTO users (username, email, password_hash, token, token_expiration) 
          VALUES ($1, $2, $3, $4, NOW() + INTERVAL '1 hour') 
          RETURNING id, username, email, created_at`,
         [username, email, hashedPassword, token]

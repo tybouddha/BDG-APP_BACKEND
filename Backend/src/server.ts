@@ -1,25 +1,23 @@
 import dotenv from "dotenv";
-import express from "express";
+import app from "./app"; // Importer l'application configurée dans app.ts
 import { query } from "./config/database";
 
 // Charger les variables d'environnement
 dotenv.config();
-console.log("DB_USER:", process.env.DB_USER); //Pour voir si les variable env sont bien chargées
+console.log("DB_USER:", process.env.DB_USER); // Vérifier si les variables sont bien chargées
 
-const app = express();
-app.use(express.json());
-
-// Exemple de route pour tester la base de données
-app.get("/test-db", async (req, res) => {
+// Test de la connexion à la base de données avant de démarrer le serveur
+(async () => {
   try {
-    const result = await query("SELECT NOW()"); // Teste la connexion avec la commande SQL
-    res.json({ message: "Connexion réussie !", time: result.rows[0] });
+    const result = await query("SELECT NOW()");
+    console.log("Connexion réussie à PostgreSQL :", result.rows[0]);
   } catch (error) {
-    console.error("Erreur de connexion :", error);
-    res.status(500).json({ error: "Erreur de connexion à la base de données" });
+    console.error("Erreur de connexion à PostgreSQL :", error);
+    process.exit(1); // Stoppe le démarrage si la base est inaccessible
   }
-});
+})();
 
+// Lancer le serveur
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);

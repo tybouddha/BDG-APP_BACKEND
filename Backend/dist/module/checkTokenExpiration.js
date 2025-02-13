@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const database_1 = require("../src/config/database");
+const database_1 = require("../config/database");
 const checkTokenExpiration = async (req, res, next) => {
     const token = req.headers["authorization"]?.split(" ")[1]; // Bearer token
     if (!token)

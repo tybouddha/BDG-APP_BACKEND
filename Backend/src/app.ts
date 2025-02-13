@@ -1,13 +1,18 @@
 "use strict";
 require("dotenv").config(); // Lien avec le fichier .env (doit être en tout premier)
-var express = require("express");
+import express, { Request, Response } from "express";
 var path = require("path");
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
+import bodyParser from "body-parser";
+import usersRouter from "./routes/users";
+
 const app = express();
+
 // Configuration de CORS
 app.use(cors()); // Autorise toutes les origines par défaut
+
 //Vérification des variables d'environnement de la bdd
 if (!process.env.DB_USER || !process.env.DB_PASSWORD || !process.env.DB_HOST) {
   console.error(
@@ -22,14 +27,32 @@ if (!process.env.JWT_SECRET) {
   );
   process.exit(1); // Stoppe le serveur
 }
-var indexRouter = require("./src/routes/index");
-var usersRouter = require("./src/routes/users");
+var indexRouter = require("../src/index");
+
+// Middleware
+app.use(bodyParser.json()); // Pour parser le body en JSON
+
+// Routes
 app.use(logger("dev"));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/", indexRouter);
-app.use("/users", usersRouter);
+app.use("/auth", usersRouter);
+
+// Gestion des routes non trouvées
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    result: false,
+    message: "Route non trouvée.",
+  });
+});
+
+app._router.stack.forEach((layer: any) => {
+  if (layer.route) {
+    console.log(layer.route.path);
+  }
+});
 
 export default app;

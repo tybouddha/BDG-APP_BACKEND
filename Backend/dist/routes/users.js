@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -31,7 +22,7 @@ router.post("/signup", [
     (0, express_validator_1.body)("password")
         .isLength({ min: 6 })
         .withMessage("Le mot de passe doit contenir au moins 6 caractères."),
-], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+], async (req, res) => {
     try {
         // Vérification des erreurs de validation
         const errors = (0, express_validator_1.validationResult)(req);
@@ -44,7 +35,7 @@ router.post("/signup", [
         // Extraction des données
         const { username, email, password } = req.body;
         // Vérifier si l'utilisateur existe déjà
-        const userExists = yield (0, database_1.query)("SELECT * FROM users WHERE email = $1", [
+        const userExists = await (0, database_1.query)("SELECT * FROM users WHERE email = $1", [
             email,
         ]);
         if (userExists.rows.length > 0) {
@@ -54,14 +45,14 @@ router.post("/signup", [
             });
         }
         // Hash du mot de passe
-        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+        const hashedPassword = await bcrypt_1.default.hash(password, 10);
         if (!JWT_SECRET) {
             throw new Error("JWT_SECRET doît être obligatoirement défini dans les variables d'environnement");
         }
         // Génération du token JWT
         const token = jsonwebtoken_1.default.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
         // Insertion de l'utilisateur dans la base
-        const result = yield (0, database_1.query)(`INSERT INTO users (username, email, password, token, token_expiration) 
+        const result = await (0, database_1.query)(`INSERT INTO users (username, email, password, token, token_expiration) 
          VALUES ($1, $2, $3, $4, NOW() + INTERVAL '1 hour') 
          RETURNING id, username, email, created_at`, [username, email, hashedPassword, token]);
         // Réponse de succès
@@ -83,5 +74,5 @@ router.post("/signup", [
             message: "Erreur interne du serveur.",
         });
     }
-}));
+});
 exports.default = router;

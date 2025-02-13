@@ -6,7 +6,7 @@ var path = require("path");
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
-var app = express();
+const app = express();
 // Configuration de CORS
 app.use(cors()); // Autorise toutes les origines par défaut
 //Vérification des variables d'environnement de la bdd

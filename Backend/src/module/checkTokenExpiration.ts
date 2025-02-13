@@ -1,4 +1,4 @@
-import { query } from "../src/config/database";
+import { query } from "../config/database";
 import { Request, Response, NextFunction } from "express";
 
 const checkTokenExpiration = async (
