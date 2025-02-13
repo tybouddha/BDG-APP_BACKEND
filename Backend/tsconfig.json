@@ -3,7 +3,7 @@
     "target": "ES6",
     "module": "CommonJS",
     "rootDir": "./src",
-    "types": ["node", "express"],
+    "types": ["node", "express", "jest"],
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "outDir": "./dist",
     "strict": true,
@@ -11,6 +11,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src"], // ← Assure-toi d'inclure "src"
+  "include": ["src/**/*", "app.ts"], // ← Assure-toi d'inclure "src"
   "exclude": ["node_modules", "dist"]
 }
