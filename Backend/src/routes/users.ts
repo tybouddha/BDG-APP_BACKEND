@@ -33,6 +33,7 @@ router.post(
           result: false,
           errors: errors.array(),
         });
+        return;
       }
 
       // 3.Extraction des données
@@ -47,6 +48,7 @@ router.post(
           result: false,
           message: "Un utilisateur avec cet email existe déjà.",
         });
+        return;
       }
 
       // 5.Hash du mot de passe
@@ -55,6 +57,7 @@ router.post(
         throw new Error(
           "JWT_SECRET doît être obligatoirement défini dans les variables d'environnement"
         );
+        return;
       }
       // 6.Génération du token JWT
       const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
@@ -110,6 +113,7 @@ router.post(
           result: false,
           errors: errors.array(),
         });
+        return;
       }
 
       // 3.Extraction des données
@@ -123,6 +127,7 @@ router.post(
       const userExists = userResult.rows;
       if (userExists.length === 0) {
         res.status(404).json({ error: "Utilisateur non trouvé." });
+        return;
       }
       // 5.Vérifier la concordance des mots de passe
       const passwordMatch = await bcrypt.compare(
@@ -131,6 +136,7 @@ router.post(
       );
       if (!passwordMatch) {
         res.status(401).json({ error: "Mot de passe incorrect." });
+        return;
       }
 
       if (!JWT_SECRET) {
@@ -140,7 +146,11 @@ router.post(
       }
 
       // 6.Génération du token JWT
-      const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
+      const token = jwt.sign(
+        { username, user_id: userExists[0].id },
+        JWT_SECRET,
+        { expiresIn: "1h" }
+      );
 
       // 7.Réponse du succès
       res.status(200).json({
