@@ -10,15 +10,11 @@ dotenv.config();
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-//*********************//
-//     ROUTE POST     //
-//*******************//
-
-//Route Signup
+// Route POST /auth/signup
 router.post(
   "/signup",
   [
-    // Validation des champs
+    // 1.Validation des champs
     body("username")
       .notEmpty()
       .withMessage("Le nom d'utilisateur est obligatoire."),
@@ -30,7 +26,7 @@ router.post(
   async (req: Request, res: Response): Promise<void> => {
     console.log("Requête reçue sur /auth/signup");
     try {
-      // Vérification des erreurs de validation
+      // 2.Vérification des erreurs de validation
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
@@ -39,10 +35,10 @@ router.post(
         });
       }
 
-      // Extraction des données
+      // 3.Extraction des données
       const { username, email, password_hash } = req.body;
 
-      // Vérifier si l'utilisateur existe déjà
+      // 4.Vérifier si l'utilisateur existe déjà
       const userExists = await query("SELECT * FROM users WHERE email = $1", [
         email,
       ]);
@@ -53,17 +49,17 @@ router.post(
         });
       }
 
-      // Hash du mot de passe
+      // 5.Hash du mot de passe
       const hashedPassword = await bcrypt.hash(password_hash, 10);
       if (!JWT_SECRET) {
         throw new Error(
           "JWT_SECRET doît être obligatoirement défini dans les variables d'environnement"
         );
       }
-      // Génération du token JWT
+      // 6.Génération du token JWT
       const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
 
-      // Insertion de l'utilisateur dans la base
+      // 7.Insertion de l'utilisateur dans la base
       const result = await query(
         `INSERT INTO users (username, email, password_hash, token, token_expiration) 
          VALUES ($1, $2, $3, $4, NOW() + INTERVAL '1 hour') 
@@ -71,7 +67,7 @@ router.post(
         [username, email, hashedPassword, token]
       );
 
-      // Réponse de succès
+      // 8.Réponse de succès
       res.status(201).json({
         result: true,
         message: "Utilisateur créé avec succès.",
@@ -92,10 +88,11 @@ router.post(
   }
 );
 
-//Route Signin
+//Route POST /auth/signin
 router.post(
   "/signin",
   [
+    // 1.Validation des champs
     body("username")
       .notEmpty()
       .withMessage("Le nom d'utilisateur est obligatoire."),
@@ -106,6 +103,7 @@ router.post(
   async (req: Request, res: Response): Promise<void> => {
     console.log("Requête reçue sur /auth/signin");
     try {
+      // 2.Vérification des erreurs de validation
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
@@ -114,8 +112,10 @@ router.post(
         });
       }
 
+      // 3.Extraction des données
       const { username, password_hash } = req.body;
 
+      // 4.Vérifier si l'utilisateur existe déjà
       const userResult = await query(
         "SELECT * FROM users WHERE username = $1",
         [username]
@@ -124,7 +124,7 @@ router.post(
       if (userExists.length === 0) {
         res.status(404).json({ error: "Utilisateur non trouvé." });
       }
-
+      // 5.Vérifier la concordance des mots de passe
       const passwordMatch = await bcrypt.compare(
         password_hash,
         userExists[0].password_hash
@@ -139,8 +139,10 @@ router.post(
         );
       }
 
+      // 6.Génération du token JWT
       const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
 
+      // 7.Réponse du succès
       res.status(200).json({
         result: true,
         message: "Utilisateur connecté.",

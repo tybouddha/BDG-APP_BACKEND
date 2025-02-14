@@ -7,6 +7,7 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 import bodyParser from "body-parser";
 import usersRouter from "./routes/users";
+import accountsRouter from "./routes/accounts";
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/", indexRouter);
 app.use("/auth", usersRouter);
+app.use("/accounts", accountsRouter);
 
 // Gestion des routes non trouvées
 app.use((req: Request, res: Response) => {
