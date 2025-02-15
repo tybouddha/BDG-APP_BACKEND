@@ -10,6 +10,10 @@ dotenv.config();
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
+//****************//
+//  ROUTE POST   //
+//**************//
+
 // Route POST /auth/signup
 router.post(
   "/signup",
