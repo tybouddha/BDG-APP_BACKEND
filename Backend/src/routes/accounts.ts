@@ -10,6 +10,70 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 //****************//
+//  ROUTE GET    //
+//**************//
+
+// Route GET pour voir les comptes associé à l'utilisateur
+router.get("/accounts", async (req: Request, res: Response): Promise<void> => {
+  try {
+    // 1. Vérification du token
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      res.status(401).json({ result: false, message: "Pas de token reçu." });
+      return;
+    }
+
+    if (!JWT_SECRET) {
+      res.status(500).json({
+        result: false,
+        message:
+          "JWT_SECRET doit être défini dans les variables d'environnement.",
+      });
+      return;
+    }
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET); // Décodage du token
+    } catch (err) {
+      res.status(401).json({ result: false, message: "Token invalide." });
+      return;
+    }
+
+    // 2. Récupération de l'ID utilisateur depuis le token
+    const userIdFromToken = decoded.user_id;
+
+    // 3. Récupération des comptes associés à l'utilisateur
+    const accountsQuery = await query(
+      "SELECT id, name, balance, currency, is_active FROM accounts WHERE user_id = $1",
+      [userIdFromToken]
+    );
+
+    // 4. Vérification s'il y a des comptes associés
+    if (accountsQuery.rows.length === 0) {
+      res.status(404).json({
+        result: false,
+        message: "Aucun compte trouvé pour cet utilisateur.",
+      });
+      return;
+    }
+
+    // 5. Réponse avec les comptes trouvés
+    res.status(200).json({
+      result: true,
+      message: "Comptes récupérés avec succès.",
+      accounts: accountsQuery.rows,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des comptes :", error);
+    res.status(500).json({
+      result: false,
+      message: "Erreur interne du serveur.",
+    });
+  }
+});
+
+//****************//
 //  ROUTE POST   //
 //**************//
 
@@ -203,7 +267,7 @@ router.put(
 //  ROUTE DELETE //
 //**************//
 
-// Route delete avec option id du compte ou nom du  compte
+// Route DELETE avec option id du compte ou nom du  compte
 router.delete("/delete", async (req: Request, res: Response): Promise<void> => {
   try {
     // 1. Vérification du token
