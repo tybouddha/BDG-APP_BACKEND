@@ -6,13 +6,20 @@ import jwt from "jsonwebtoken";
 
 // jest.mock("../../src/config/database"); // Mock de la base de données pour éviter les appels réels si pas de bdd dédié
 
-// Mock pour les services externes
-jest.mock("bcrypt"); // Mock de bcrypt pour éviter le hashing réel
-jest.mock("jsonwebtoken"); // Mock de jsonwebtoken pour éviter la création réelle de tokens
-
 import dotenv from "dotenv";
+// Mock pour les services externes
 
 dotenv.config({ path: ".env.test" });
+
+jest.mock("jsonwebtoken", () => ({
+  sign: jest.fn(),
+  verify: jest.fn(),
+}));
+
+(jwt.sign as jest.Mock).mockReturnValue("mocked_jwt_token");
+(jwt.verify as jest.Mock).mockReturnValue({ user_id: 1, username: "testuser" });
+
+jest.mock("bcrypt"); // Mock de bcrypt pour éviter le hashing réel
 
 //Hook de nettoyage avant et après
 beforeEach(() => {
@@ -36,11 +43,6 @@ describe("Chargement des variables d'environnement", () => {
     expect(process.env.DB_NAME).toBe("budget_app_test"); // Vérifie bien que tu es sur la base de test
   });
 });
-
-jest.mock("jsonwebtoken");
-
-(jwt.sign as jest.Mock).mockReturnValue("mocked_jwt_token");
-(jwt.verify as jest.Mock).mockReturnValue({ user_id: 1, username: "testuser" });
 
 //Description de la partie à tester
 describe("POST /auth/signup", () => {
