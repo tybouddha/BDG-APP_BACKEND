@@ -1,13 +1,14 @@
 "use strict";
 require("dotenv").config(); // Lien avec le fichier .env (doit être en tout premier)
 import express, { Request, Response } from "express";
-var path = require("path");
-var cors = require("cors");
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
 import bodyParser from "body-parser";
 import usersRouter from "./routes/users";
 import accountsRouter from "./routes/accounts";
+const path = require("path");
+var cors = require("cors");
+var cookieParser = require("cookie-parser");
+var logger = require("morgan");
+var indexRouter = require("./index");
 
 const app = express();
 
@@ -28,7 +29,6 @@ if (!process.env.JWT_SECRET) {
   );
   process.exit(1); // Stoppe le serveur
 }
-var indexRouter = require("../src/index");
 
 // Middleware
 app.use(bodyParser.json()); // Pour parser le body en JSON
