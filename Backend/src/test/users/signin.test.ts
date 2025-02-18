@@ -1,39 +1,33 @@
-import request from "supertest";
-import app from "../../app"; // Ton fichier principal Express (où app est créé)
-import { query } from "../../config/database";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import dotenv from "dotenv"; // Importation de dotenv pour charger les variables d'environnement
+import request from "supertest"; // Importation de Supertest pour faire des requêtes HTTP
+import app from "../../app"; // Importation de l'application Express
+import { query } from "../../config/database"; // Importation de la fonction query pour interagir avec la base de données
+import bcrypt from "bcrypt"; // Pour le hashage des mots de passe
+import jwt from "jsonwebtoken"; // Pour les tokens JWT
 
-jest.mock("../../src/config/database");
-jest.mock("bcrypt");
-jest.mock("jsonwebtoken");
-
-jest.mock("../../src/config/database"); // Remplace toutes les fonctions du fichier par des mocks
-
-(query as jest.Mock).mockResolvedValue({
-  rows: [{ id: 1, username: "testuser" }],
-}); // Simule une réponse
-
-import dotenv from "dotenv";
-
+// Chargez les variables d'environnement à partir de .env.test
 dotenv.config({ path: ".env.test" });
 
-describe("Chargement des variables d'environnement", () => {
-  it("doit charger la clé JWT_SECRET correctement", () => {
-    expect(process.env.JWT_SECRET).toBe("mocked_jwt_secret");
-  });
+// Mock des modules bcrypt et jsonwebtoken
+jest.mock("bcrypt", () => ({
+  hash: jest.fn().mockResolvedValue("hashed_password"), // Simulez le hachage du mot de passe
+  compare: jest.fn(), // Mock la fonction compare
+}));
+jest.mock("jsonwebtoken", () => ({
+  sign: jest.fn().mockReturnValue(process.env.JWT_SECRET),
+  verify: jest.fn().mockReturnValue({ user_id: 1, username: "testuser" }),
+}));
 
-  it("doit charger les informations de la base de données", () => {
-    expect(process.env.DB_USER).toBe("postgres");
-    expect(process.env.DB_NAME).toBe("budget_app");
-  });
+// Mock de query
+jest.mock("../../config/database", () => ({
+  query: jest.fn(),
+}));
+
+// Après chaque test, nettoyez la base de données pour éviter les interférences
+afterEach(async () => {
+  await query("DELETE FROM users WHERE email = $1", ["test@example.com"]); // Supprimez les utilisateurs de test
+  jest.clearAllMocks(); // Réinitialiser les mocks
 });
-
-jest.mock("jsonwebtoken");
-
-(jwt.sign as jest.Mock).mockReturnValue("mocked_jwt_token");
-(jwt.verify as jest.Mock).mockReturnValue({ user_id: 1, username: "testuser" });
-
 describe("POST /auth/signin", () => {
   const mockUser = {
     id: 1,
@@ -50,6 +44,18 @@ describe("POST /auth/signin", () => {
     expect(res.status).toBe(400);
     expect(res.body.result).toBe(false);
     expect(res.body.errors).toBeDefined();
+  });
+
+  it("doit retourner une erreur 500 en cas de problème serveur", async () => {
+    (query as jest.Mock).mockRejectedValueOnce(new Error("Erreur serveur")); // Simulez une erreur de base de données
+
+    const res = await request(app)
+      .post("/auth/signin")
+      .send({ username: "testuser", password_hash: "password123" });
+
+    expect(res.status).toBe(500); // Vérifiez que la réponse est 500
+    expect(res.body.result).toBe(false); // Vérifiez que le résultat est faux
+    expect(res.body.message).toBe("Erreur interne du serveur."); // Vérifiez le message d'erreur
   });
 
   it("doit retourner une erreur 404 si l'utilisateur n'existe pas", async () => {

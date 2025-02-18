@@ -17,13 +17,6 @@ jest.mock("jsonwebtoken", () => ({
   verify: jest.fn().mockReturnValue({ user_id: 1, username: "testuser" }),
 }));
 
-// Avant tous les tests, configurez les variables d'environnement nécessaires
-beforeAll(() => {
-  // process.env.JWT_SECRET = "mocked_jwt_secret"; // Clé secrète pour JWT
-  // process.env.DB_USER = "postgres"; // Utilisateur de la base de données
-  // process.env.DB_NAME = "budget_app_test"; // Nom de la base de données de test
-});
-
 // Après chaque test, nettoyez la base de données pour éviter les interférences
 afterEach(async () => {
   await query("DELETE FROM users WHERE email = $1", ["test@example.com"]); // Supprimez les utilisateurs de test
