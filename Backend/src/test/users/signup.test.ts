@@ -2,9 +2,15 @@ import dotenv from "dotenv"; // Importation de dotenv pour charger les variables
 import request from "supertest"; // Importation de Supertest pour faire des requêtes HTTP
 import app from "../../app"; // Importation de l'application Express
 import { query } from "../../config/database"; // Importation de la fonction query pour interagir avec la base de données
+import bcrypt from "bcrypt"; // Pour le hashage des mots de passe
+import jwt from "jsonwebtoken"; // Pour les tokens JWT
 
 // Chargez les variables d'environnement à partir de .env.test
 dotenv.config({ path: ".env.test" });
+
+// Mock des modules bcrypt et jsonwebtoken
+jest.mock("bcrypt");
+jest.mock("jsonwebtoken");
 
 // Avant tous les tests, configurez les variables d'environnement nécessaires
 beforeAll(() => {
@@ -16,12 +22,19 @@ beforeAll(() => {
 // Après chaque test, nettoyez la base de données pour éviter les interférences
 afterEach(async () => {
   await query("DELETE FROM users WHERE email = $1", ["test@example.com"]); // Supprimez les utilisateurs de test
+  jest.clearAllMocks(); // Réinitialiser les mocks
 });
 
 // Début de la suite de tests pour la route POST /auth/signup
 describe("POST /auth/signup", () => {
   // Test pour vérifier l'insertion d'un utilisateur dans la base de données
-  it("doit insérer un utilisateur dans la base de données", async () => {
+  it("doit insérer un utilisateur dans la base de données et appeler bcrypt et jwt", async () => {
+    // Simuler le comportement de bcrypt.hash
+    (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
+
+    // Simuler le comportement de jwt.sign
+    (jwt.sign as jest.Mock).mockReturnValue("mocked_token");
+
     const res = await request(app).post("/auth/signup").send({
       username: "testuser",
       email: "test@example.com",
@@ -30,6 +43,16 @@ describe("POST /auth/signup", () => {
 
     expect(res.status).toBe(201); // Vérifiez que la réponse est 201
     expect(res.body.result).toBe(true); // Vérifiez que le résultat est vrai
+
+    // Vérification que bcrypt.hash a été appelé correctement
+    expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+
+    // Vérification que jwt.sign a été appelé correctement
+    expect(jwt.sign).toHaveBeenCalledWith(
+      { email: "test@example.com" },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
     // Vérifiez que l'utilisateur a bien été inséré
     const result = await query("SELECT * FROM users WHERE email = $1", [
@@ -88,5 +111,79 @@ describe("POST /auth/signup", () => {
     expect(res.body.errors[0].msg).toBe(
       "Le mot de passe doit contenir au moins 6 caractères."
     ); // Vérifiez le message d'erreur
+  });
+
+  // Test pour vérifier le comportement si bcrypt échoue
+  it("doit retourner une erreur 400 si bcrypt échoue", async () => {
+    // Simuler une erreur de bcrypt
+    (bcrypt.hash as jest.Mock).mockRejectedValue(new Error("Hashing error"));
+
+    const res = await request(app).post("/auth/signup").send({
+      username: "testuser",
+      email: "test@example.com",
+      password_hash: "password123",
+    });
+    // Vérifications sur la réponse
+    expect(res.status).toBe(500); // Statut 500 pour erreur serveur
+    expect(res.body.result).toBe(false); // Le résultat doit être faux
+    expect(res.body.message).toBe("Erreur interne du serveur."); // Message d'erreur générique
+
+    // Vérifier que bcrypt.hash a été appelé
+    expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+  });
+
+  it("doit retourner une erreur 500 si jwt.sign échoue", async () => {
+    // Simuler le comportement de bcrypt.hash
+    (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
+
+    // Simuler une erreur dans jwt.sign
+    (jwt.sign as jest.Mock).mockImplementation(() => {
+      throw new Error("JWT error");
+    });
+
+    const res = await request(app).post("/auth/signup").send({
+      username: "testuser",
+      email: "test@example.com",
+      password_hash: "password123",
+    });
+
+    // Vérifications sur la réponse
+    expect(res.status).toBe(500); // Statut 500 pour erreur serveur
+    expect(res.body.result).toBe(false); // Le résultat doit être faux
+    expect(res.body.message).toBe("Erreur interne du serveur."); // Message d'erreur générique
+
+    // Vérifier que bcrypt.hash a été appelé
+    expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+
+    // Vérifier que jwt.sign a été appelé
+    expect(jwt.sign).toHaveBeenCalled();
+  });
+
+  // Test pour vérifier le comportement si jwt échoue
+  it("doit retourner une erreur 500 si jwt.sign échoue", async () => {
+    // Simuler le comportement de bcrypt.hash
+    (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
+
+    // Simuler une erreur dans jwt.sign
+    (jwt.sign as jest.Mock).mockImplementation(() => {
+      throw new Error("JWT error");
+    });
+
+    const res = await request(app).post("/auth/signup").send({
+      username: "testuser",
+      email: "test@example.com",
+      password_hash: "password123",
+    });
+
+    // Vérifications sur la réponse
+    expect(res.status).toBe(500); // Statut 500 pour erreur serveur
+    expect(res.body.result).toBe(false); // Le résultat doit être faux
+    expect(res.body.message).toBe("Erreur interne du serveur."); // Message d'erreur générique
+
+    // Vérifier que bcrypt.hash a été appelé
+    expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+
+    // Vérifier que jwt.sign a été appelé
+    expect(jwt.sign).toHaveBeenCalled();
   });
 });
