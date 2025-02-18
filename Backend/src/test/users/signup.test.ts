@@ -13,15 +13,15 @@ jest.mock("bcrypt", () => ({
   hash: jest.fn().mockResolvedValue("hashed_password"), // Simulez le hachage du mot de passe
 }));
 jest.mock("jsonwebtoken", () => ({
-  sign: jest.fn().mockReturnValue("mocked_jwt_token"),
+  sign: jest.fn().mockReturnValue(process.env.JWT_SECRET),
   verify: jest.fn().mockReturnValue({ user_id: 1, username: "testuser" }),
 }));
 
 // Avant tous les tests, configurez les variables d'environnement nécessaires
 beforeAll(() => {
-  process.env.JWT_SECRET = "mocked_jwt_secret"; // Clé secrète pour JWT
-  process.env.DB_USER = "postgres"; // Utilisateur de la base de données
-  process.env.DB_NAME = "budget_app_test"; // Nom de la base de données de test
+  // process.env.JWT_SECRET = "mocked_jwt_secret"; // Clé secrète pour JWT
+  // process.env.DB_USER = "postgres"; // Utilisateur de la base de données
+  // process.env.DB_NAME = "budget_app_test"; // Nom de la base de données de test
 });
 
 // Après chaque test, nettoyez la base de données pour éviter les interférences
@@ -38,7 +38,7 @@ describe("POST /auth/signup", () => {
     (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
 
     // Simuler le comportement de jwt.sign
-    (jwt.sign as jest.Mock).mockReturnValue("mocked_token");
+    (jwt.sign as jest.Mock).mockReturnValue(process.env.JWT_SECRET);
 
     const res = await request(app).post("/auth/signup").send({
       username: "testuser",
@@ -55,7 +55,7 @@ describe("POST /auth/signup", () => {
     // Vérification que jwt.sign a été appelé correctement
     expect(jwt.sign).toHaveBeenCalledWith(
       { email: "test@example.com" },
-      "mocked_jwt_secret",
+      process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
