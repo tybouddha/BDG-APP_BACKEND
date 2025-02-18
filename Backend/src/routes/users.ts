@@ -29,26 +29,26 @@ router.post(
   ],
   async (req: Request, res: Response): Promise<void> => {
     console.log("Requête reçue sur /auth/signup");
+    // 2.Vérification des erreurs de validation
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log("Erreurs de validation :", errors.array());
+      res.status(400).json({
+        result: false,
+        errors: errors.array(),
+      });
+      return;
+    }
+    // 3.Extraction des données
+    const { username, email, password_hash } = req.body;
+
     try {
-      // 2.Vérification des erreurs de validation
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        res.status(400).json({
-          result: false,
-          errors: errors.array(),
-        });
-        return;
-      }
-
-      // 3.Extraction des données
-      const { username, email, password_hash } = req.body;
-
       // 4.Vérifier si l'utilisateur existe déjà
       const userExists = await query("SELECT * FROM users WHERE email = $1", [
         email,
       ]);
       if (userExists.rows.length > 0) {
-        res.status(400).json({
+        res.status(409).json({
           result: false,
           message: "Un utilisateur avec cet email existe déjà.",
         });

@@ -13,7 +13,14 @@ const pool = new Pool({
 });
 
 // Fonction pour exécuter des requêtes SQL
-export const query = (text: string, params?: any[]) => pool.query(text, params);
+export const query = async (text: string, params?: any[]) => {
+  try {
+    return await pool.query(text, params);
+  } catch (error) {
+    console.error("Erreur lors de l'exécution de la requête :", error);
+    throw error; // Relancez l'erreur pour qu'elle soit capturée dans votre route
+  }
+};
 
 console.log("🚀 Connecté à PostgreSQL");
 
