@@ -9,8 +9,13 @@ import jwt from "jsonwebtoken"; // Pour les tokens JWT
 dotenv.config({ path: ".env.test" });
 
 // Mock des modules bcrypt et jsonwebtoken
-jest.mock("bcrypt");
-jest.mock("jsonwebtoken");
+jest.mock("bcrypt", () => ({
+  hash: jest.fn().mockResolvedValue("hashed_password"), // Simulez le hachage du mot de passe
+}));
+jest.mock("jsonwebtoken", () => ({
+  sign: jest.fn().mockReturnValue("mocked_jwt_token"),
+  verify: jest.fn().mockReturnValue({ user_id: 1, username: "testuser" }),
+}));
 
 // Avant tous les tests, configurez les variables d'environnement nécessaires
 beforeAll(() => {
@@ -50,7 +55,7 @@ describe("POST /auth/signup", () => {
     // Vérification que jwt.sign a été appelé correctement
     expect(jwt.sign).toHaveBeenCalledWith(
       { email: "test@example.com" },
-      process.env.JWT_SECRET,
+      "mocked_jwt_secret",
       { expiresIn: "1h" }
     );
 

@@ -57,14 +57,16 @@ router.post(
 
       // 5.Hash du mot de passe
       const hashedPassword = await bcrypt.hash(password_hash, 10);
-      if (!JWT_SECRET) {
+      if (!process.env.JWT_SECRET) {
         throw new Error(
           "JWT_SECRET doît être obligatoirement défini dans les variables d'environnement"
         );
         return;
       }
       // 6.Génération du token JWT
-      const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
+      const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
+      });
 
       // 7.Insertion de l'utilisateur dans la base
       const result = await query(
