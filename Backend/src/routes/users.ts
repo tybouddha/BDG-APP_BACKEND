@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { query } from "../config/database";
 import dotenv from "dotenv";
+import { log } from "console";
 
 dotenv.config();
 
@@ -173,5 +174,90 @@ router.post(
     }
   }
 );
+
+//****************//
+//  ROUTE PUT    //
+//**************//
+
+//****************//
+//  ROUTE DELETE //
+//**************//
+
+//****************//
+//  ROUTE GET    //
+//**************//
+
+router.get("/get", async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log("Requête reçue sur /auth/get avec les données :", req.body);
+    // 1. Vérification du token
+    console.log("Authorization Header :", req.headers.authorization);
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ result: false, message: "Pas de token reçu." });
+      return;
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!JWT_SECRET) {
+      res.status(500).json({
+        result: false,
+        message:
+          "JWT_SECRET doit être défini dans les variables d'environnement.",
+      });
+      return;
+    }
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err: any) {
+      if (err.name === "TokenExpiredError") {
+        res.status(401).json({ result: false, message: "Token expiré." });
+      } else {
+        res.status(401).json({ result: false, message: "Token invalide." });
+      }
+      return;
+    }
+    // 2. Récupération de l'ID utilisateur depuis le token
+    const { user_id } = decoded;
+    if (!user_id) {
+      res.status(400).json({ result: false, message: "Token mal formé." });
+      return;
+    }
+    console.log(user_id);
+
+    // 3. Récupération des informations utilisateur
+    const userQuery = await query(
+      "SELECT id, username, email FROM users WHERE id = $1",
+      [user_id]
+    );
+
+    if (userQuery.rows.length === 0) {
+      res.status(404).json({
+        result: false,
+        message: "Utilisateur non trouvé.",
+      });
+      return;
+    }
+
+    // 4. Réponse avec les informations trouvées
+    const user = userQuery.rows[0];
+    res.status(200).json({
+      result: true,
+      message: "Utilisateur récupéré avec succès.",
+      user,
+    });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des informations utilisateur :",
+      error
+    );
+    res.status(500).json({
+      result: false,
+      message: "Erreur interne du serveur.",
+    });
+  }
+});
 
 export default router;
