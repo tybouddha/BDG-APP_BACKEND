@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 
 dotenv.config();
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const authenticateToken = (
   req: Request,
@@ -10,6 +11,7 @@ export const authenticateToken = (
   next: NextFunction
 ): void => {
   console.log("Authorization Header :", req.headers.authorization);
+  console.log("Middleware authenticateToken appelé !");
   const authHeader = req.headers.authorization;
 
   // Vérification de la présence et du format du token
@@ -33,7 +35,7 @@ export const authenticateToken = (
 
   // Vérification du token
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { user_id: string };
+    const decoded = jwt.verify(token, JWT_SECRET); //as { user_id: string };
     (req as any).user = decoded; // Ajoute les infos du token au req pour la suite
     next(); // Passe à la route suivante
   } catch (err: any) {

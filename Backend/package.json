@@ -7,7 +7,7 @@
     "start": "node dist/index.js",
     "dev": "nodemon --watch src --exec ts-node src/server.ts",
     "test:db:init": "psql -U postgres -d budget_app_test -f schema.sql",
-    "test": "jest"
+    "test": "jest --silent=false"
   },
   "dependencies": {
     "@types/supertest": "^6.0.2",

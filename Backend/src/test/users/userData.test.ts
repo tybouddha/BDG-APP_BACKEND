@@ -15,7 +15,12 @@ jest.mock("bcrypt", () => ({
 }));
 jest.mock("jsonwebtoken", () => ({
   sign: jest.fn().mockReturnValue(process.env.JWT_SECRET),
-  verify: jest.fn().mockReturnValue({ user_id: 1, username: "testuser" }),
+  verify: jest.fn().mockImplementation((token, secret) => {
+    if (token === "invalidToken") {
+      throw new Error("Token invalide.");
+    }
+    return { user_id: 1, username: "testuser" };
+  }),
 }));
 
 // Mock de query
@@ -104,7 +109,7 @@ describe("GET /auth/userData", () => {
   it("doit retourner une erreur 401 si le token est invalide", async () => {
     const res = await request(app)
       .get("/auth/userData")
-      .set("Authorization", "Bearer invalid_token");
+      .set("Authorization", "Bearer invalidToken");
 
     expect(res.status).toBe(401); // Erreur non autorisé
     expect(res.body.result).toBe(false);

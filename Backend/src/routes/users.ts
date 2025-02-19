@@ -4,7 +4,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { query } from "../config/database";
 import dotenv from "dotenv";
-import { log } from "console";
 import { authenticateToken } from "../module/authenticateToken";
 
 dotenv.config();
@@ -102,6 +101,7 @@ router.post(
 //Route POST /auth/signin
 router.post(
   "/signin",
+
   [
     // 1.Validation des champs
     body("username")
@@ -193,51 +193,10 @@ router.get(
   authenticateToken, // Middleware pour vérifier le token
   async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log(
-        "Requête reçue sur /auth/userData avec les données :",
-        req.body
-      );
-      // 1. Vérification du token
-      console.log("Authorization Header :", req.headers.authorization);
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        console.log("Token manquant ou invalide");
-        res.status(401).json({ result: false, message: "Pas de token reçu." });
-        return;
-      }
-      console.log("Token valide :", authHeader);
-      const JWT_SECRET = process.env.JWT_SECRET;
+      const { user_id } = (req as any).user; // Récupérer `user_id` ajouté par le middleware
+      console.log("ID utilisateur extrait du token :", user_id);
 
-      const token = authHeader.split(" ")[1];
-      if (!JWT_SECRET) {
-        res.status(500).json({
-          result: false,
-          message:
-            "JWT_SECRET doit être défini dans les variables d'environnement.",
-        });
-        return;
-      }
-
-      let decoded: any;
-      try {
-        decoded = jwt.verify(token, JWT_SECRET);
-      } catch (err: any) {
-        if (err.name === "TokenExpiredError") {
-          res.status(401).json({ result: false, message: "Token expiré." });
-        } else {
-          res.status(401).json({ result: false, message: "Token invalide." });
-        }
-        return;
-      }
-      // 2. Récupération de l'ID utilisateur depuis le token
-      const { user_id } = decoded;
-      if (!user_id) {
-        res.status(400).json({ result: false, message: "Token mal formé." });
-        return;
-      }
-      console.log(user_id);
-
-      // 3. Récupération des informations utilisateur
+      // Récupération des informations utilisateur
       const userQuery = await query(
         "SELECT id, username, email FROM users WHERE id = $1",
         [user_id]
@@ -251,7 +210,6 @@ router.get(
         return;
       }
 
-      // 4. Réponse avec les informations trouvées
       const user = userQuery.rows[0];
       res.status(200).json({
         result: true,
