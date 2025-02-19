@@ -28,6 +28,7 @@ afterEach(async () => {
   await query("DELETE FROM users WHERE email = $1", ["test@example.com"]); // Supprimez les utilisateurs de test
   jest.clearAllMocks(); // Réinitialiser les mocks
 });
+
 describe("POST /auth/signin", () => {
   const mockUser = {
     id: 1,
