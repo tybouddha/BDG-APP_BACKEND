@@ -179,6 +179,74 @@ router.post(
 //****************//
 //  ROUTE PUT    //
 //**************//
+router.put(
+  "/update",
+  authenticateToken, // 1. Validation du token
+  [
+    // 2.Validation des champs
+    body("username")
+      .notEmpty()
+      .withMessage("Le nom d'utilisateur est obligatoire."),
+    body("email").isEmail().withMessage("Format d'email invalide."),
+    body("password_hash")
+      .isLength({ min: 6 })
+      .withMessage("Le mot de passe doit contenir au moins 6 caractères."),
+  ],
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Vérification des erreurs de validation
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({ result: false, errors: errors.array() });
+        return;
+      }
+      //3. Extraction des données
+      const { user_id } = (req as any).user; // Récupération de l'ID de l'utilisateur depuis le token
+      const { username, email, password_hash } = req.body;
+
+      // Si le mot de passe est fourni, on le hache
+      let hashedPassword = "";
+      if (password_hash) {
+        hashedPassword = await bcrypt.hash(password_hash, 10);
+      }
+
+      // 4.Mise à jour des informations de l'utilisateur dans la base de données
+      const updateQuery = `
+        UPDATE users 
+        SET username = $1, email = $2, ${
+          password_hash ? "password_hash = $3" : ""
+        }
+        WHERE id = $4
+        RETURNING id, username, email
+      `;
+
+      const params = password_hash
+        ? [username, email, hashedPassword, user_id]
+        : [username, email, user_id];
+
+      const result = await query(updateQuery, params);
+
+      if (result.rowCount === 0) {
+        res
+          .status(404)
+          .json({ result: false, message: "Utilisateur non trouvé." });
+        return;
+      }
+      //5.Réponse du succès
+      res.status(200).json({
+        result: true,
+        message: "Informations utilisateur mises à jour avec succès.",
+        user: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de l'utilisateur :", error);
+      res.status(500).json({
+        result: false,
+        message: "Erreur interne du serveur.",
+      });
+    }
+  }
+);
 
 //****************//
 //  ROUTE DELETE //
